@@ -1,18 +1,15 @@
 const request = require('supertest');
-const { app, db } = require('../src/app');
+const { app, db, resetDataForTests } = require('../src/app');
 
-// Close the database connection after all tests
-afterAll(() => {
-  if (db) {
-    db.close();
-  }
+beforeEach(() => {
+  resetDataForTests();
 });
 
 // Test helpers
-const createItem = async (name = 'Temp Item to Delete') => {
+const createItem = async (name = 'Temp Item to Delete', due_date = null) => {
   const response = await request(app)
     .post('/api/items')
-    .send({ name })
+    .send({ name, due_date })
     .set('Accept', 'application/json');
 
   expect(response.status).toBe(201);
@@ -33,7 +30,9 @@ describe('API Endpoints', () => {
       const item = response.body[0];
       expect(item).toHaveProperty('id');
       expect(item).toHaveProperty('name');
+      expect(item).toHaveProperty('due_date');
       expect(item).toHaveProperty('created_at');
+      expect(item).toHaveProperty('updated_at');
     });
   });
 
@@ -48,7 +47,9 @@ describe('API Endpoints', () => {
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id');
       expect(response.body.name).toBe(newItem.name);
+      expect(response.body).toHaveProperty('due_date');
       expect(response.body).toHaveProperty('created_at');
+      expect(response.body).toHaveProperty('updated_at');
     });
 
     it('should return 400 if name is missing', async () => {
@@ -71,6 +72,31 @@ describe('API Endpoints', () => {
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty('error');
       expect(response.body.error).toBe('Item name is required');
+    });
+
+    it('should create an item with a due date', async () => {
+      const dueDate = '2026-08-15';
+      const response = await request(app)
+        .post('/api/items')
+        .send({ name: 'Dated Item', due_date: dueDate })
+        .set('Accept', 'application/json');
+
+      expect(response.status).toBe(201);
+      expect(response.body.name).toBe('Dated Item');
+      expect(response.body.due_date).toBe(dueDate);
+    });
+  });
+
+  describe('PUT /api/items/:id', () => {
+    it('should update an existing item', async () => {
+      const item = await createItem('Editable Item');
+      const response = await request(app)
+        .put(`/api/items/${item.id}`)
+        .send({ name: 'Edited Item', due_date: '2026-09-10' });
+
+      expect(response.status).toBe(200);
+      expect(response.body.name).toBe('Edited Item');
+      expect(response.body.due_date).toBe('2026-09-10');
     });
   });
 
