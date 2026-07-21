@@ -84,4 +84,68 @@ describe('Todo API integration tests', () => {
     expect(response.status).toBe(400);
     expect(response.body).toEqual({ error: 'Due date must be a valid date string' });
   });
+
+  it('returns 400 for invalid todo id on update', async () => {
+    const response = await request(app)
+      .put('/api/todos/not-a-number')
+      .send({ title: 'x' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'Valid todo ID is required' });
+  });
+
+  it('returns 404 when updating non-existent todo', async () => {
+    const response = await request(app)
+      .put('/api/todos/999999')
+      .send({ title: 'x' });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'Todo not found' });
+  });
+
+  it('returns 400 when update payload has no editable fields', async () => {
+    const created = await request(app)
+      .post('/api/todos')
+      .send({ title: 'Editable task', dueDate: '2026-08-10' })
+      .set('Accept', 'application/json');
+
+    expect(created.status).toBe(201);
+
+    const response = await request(app)
+      .put(`/api/todos/${created.body.id}`)
+      .send({});
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'At least one editable field is required' });
+  });
+
+  it('returns 400 for invalid due date on update', async () => {
+    const created = await request(app)
+      .post('/api/todos')
+      .send({ title: 'Editable task', dueDate: '2026-08-10' })
+      .set('Accept', 'application/json');
+
+    expect(created.status).toBe(201);
+
+    const response = await request(app)
+      .put(`/api/todos/${created.body.id}`)
+      .send({ dueDate: 'not-a-date' });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'Due date must be a valid date string' });
+  });
+
+  it('returns 400 for invalid todo id on delete', async () => {
+    const response = await request(app).delete('/api/todos/not-a-number');
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: 'Valid todo ID is required' });
+  });
+
+  it('returns 404 when deleting non-existent todo', async () => {
+    const response = await request(app).delete('/api/todos/999999');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toEqual({ error: 'Todo not found' });
+  });
 });

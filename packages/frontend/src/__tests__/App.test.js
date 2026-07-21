@@ -42,6 +42,14 @@ const server = setupServer(
       return res(ctx.status(404), ctx.json({ error: 'Todo not found' }));
     }
 
+    if (!payload.title || payload.title.trim() === '') {
+      return res(ctx.status(400), ctx.json({ error: 'Task title is required' }));
+    }
+
+    if (payload.dueDate && Number.isNaN(new Date(payload.dueDate).getTime())) {
+      return res(ctx.status(400), ctx.json({ error: 'Due date must be a valid date string' }));
+    }
+
     const updated = {
       ...todos[index],
       title: payload.title,
@@ -147,6 +155,33 @@ describe('App Component', () => {
     await waitFor(() => {
       expect(screen.getByText('Alpha task updated')).toBeInTheDocument();
     });
+  });
+
+  test('disables save when edit title is emptied', async () => {
+    const user = userEvent.setup();
+
+    await act(async () => {
+      render(<App />);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Alpha task')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      await user.click(screen.getByLabelText('Edit Alpha task'));
+    });
+
+    const editTitleInput = screen.getByRole('textbox', { name: 'Edit task title' });
+    const saveButton = screen.getByRole('button', { name: 'Save changes' });
+
+    expect(saveButton).toBeEnabled();
+
+    await act(async () => {
+      await user.clear(editTitleInput);
+    });
+
+    expect(saveButton).toBeDisabled();
   });
 
   test('deletes an existing task', async () => {

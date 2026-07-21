@@ -8,12 +8,6 @@ test.describe('Todo critical workflows', () => {
     await todoPage.clearNonSeedTasks();
   });
 
-  test.afterEach(async ({ page }) => {
-    const todoPage = new TodoPage(page);
-    await todoPage.goto();
-    await todoPage.clearNonSeedTasks();
-  });
-
   test('creates a task with a due date', async ({ page }) => {
     const todoPage = new TodoPage(page);
     const title = `E2E due-date ${Date.now()}`;
@@ -23,6 +17,7 @@ test.describe('Todo critical workflows', () => {
     await expect(todoPage.taskRow(title)).toBeVisible();
     await expect(todoPage.taskDueText(title)).toContainText('Due:');
     await expect(todoPage.taskDueText(title)).toContainText('2026');
+    await expect(await todoPage.getEditDueDateValue(title)).toBe('2026-08-15');
   });
 
   test('edits a task title and due date', async ({ page }) => {
@@ -37,6 +32,7 @@ test.describe('Todo critical workflows', () => {
     await expect(todoPage.taskRow(updatedTitle)).toBeVisible();
     await expect(todoPage.taskDueText(updatedTitle)).toContainText('Due:');
     await expect(todoPage.taskDueText(updatedTitle)).toContainText('2026');
+    await expect(await todoPage.getEditDueDateValue(updatedTitle)).toBe('2026-09-25');
   });
 
   test('keeps sorted order with dated tasks before undated tasks', async ({ page }) => {
